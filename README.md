@@ -50,10 +50,32 @@ class UserQuery extends Query
    }
 }
 
+class UserQueryRedisHandler implements QueryHandler
+{
+    public function __construct(Predis $predis)
+    {
+        $this->predis = $predis;
+    }
+    
+    public function handle(UserQuery $query)
+    {
+        $object = $this->predis->get("user:{$query->getId()}");
+        if (empty($object)) {
+            return false;
+        }
+        
+        return User::hydrateFromRedis($object);
+    }
+}
+
 class UserQueryDoctrineHandler implements QueryHandler
 {
-    public function __construct(EntityManager $em)
+    public function __construct(
+        EntityManager $em,
+        Predis $predis
+    )
     {
+        $this->predis = $predis;
         $this->em = $em;
     }
     
@@ -64,16 +86,21 @@ class UserQueryDoctrineHandler implements QueryHandler
             return false;
         }
         
+        //Insert it into Redis
+        $this->predis->set("user:{$query->getId()}", json_encode($object->toArray()));
+        
         return $object;
     }
 }
 
 $bus = new QueryBus();
-$bus->addQuery(UserQuery::class, [UserQueryDoctrineHandler::class]);
+$bus->addQuery(UserQuery::class, [
+    UserQueryRedisHandler, //check Redis first
+    UserQueryDoctrineHandler::class //Then pull from the DB
+]);
 
 //then somewhere in your code
 
 $user = $bus->fetch(new UserQuery($id));
-
 
 ```
