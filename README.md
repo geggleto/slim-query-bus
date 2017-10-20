@@ -33,17 +33,17 @@ Get's a User by Id
 class UserQuery extends Query
 {
    private $id;
-   
+
    public function __construct($id)
    {
        $this->id = $id;
    }
-   
+
    public function getId()
    {
        return $this->id;
    }
-   
+
    public function getClass()
    {
        return self::class;
@@ -56,14 +56,14 @@ class UserQueryRedisHandler implements QueryHandler
     {
         $this->predis = $predis;
     }
-    
+
     public function handle(UserQuery $query)
     {
         $object = $this->predis->get("user:{$query->getId()}");
         if (empty($object)) {
             return false;
         }
-        
+
         return User::hydrateFromRedis($object);
     }
 }
@@ -78,24 +78,25 @@ class UserQueryDoctrineHandler implements QueryHandler
         $this->predis = $predis;
         $this->em = $em;
     }
-    
+
     public function handle(UserQuery $query)
     {
         $object = $this->em->find(User::class, $query->getId);
         if (is_null($object)) {
             return false;
         }
-        
+
         //Insert it into Redis
         $this->predis->set("user:{$query->getId()}", json_encode($object->toArray()));
-        
+
         return $object;
     }
 }
 
-$bus = new QueryBus();
+$bus = new QueryBus($container); // $container = Psr\Container\ContainerInterface
+
 $bus->addQuery(UserQuery::class, [
-    UserQueryRedisHandler, //check Redis first
+    UserQueryRedisHandler::class, //check Redis first
     UserQueryDoctrineHandler::class //Then pull from the DB
 ]);
 
