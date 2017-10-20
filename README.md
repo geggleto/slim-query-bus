@@ -8,11 +8,11 @@ For example, if you wish to find data on a user of the system. You would first q
 
 In code you might have a repository with nested if's and finally a command to pull the data then insert.
 
-This add's complexity to your application and makes testing much more difficult.
+This adds complexity to your application and makes testing much more difficult.
 
 With a QueryBus you simply mock your Handler to return false and move on.
 
-It also makes it very easy to change and maintain different Cache mechanisms without worrying about Gotcha's.
+It also makes it very easy to change and maintain different Cache mechanisms without worrying about Gotchas.
 
 ### Objects
 
